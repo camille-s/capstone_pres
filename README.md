@@ -248,6 +248,13 @@ Detection.” In *2022 IEEE International Conference on Image Processing
 
 </div>
 
+<div id="ref-Browne2015" class="csl-entry">
+
+Browne, Simone. 2015. *Dark Matters: On the Surveillance of Blackness*.
+Durham, NC: Duke University Press.
+
+</div>
+
 <div id="ref-N.O.R+2017" class="csl-entry">
 
 Neuhold, Gerhard, Tobias Ollmann, Samuel Rota Bulo, and Peter
