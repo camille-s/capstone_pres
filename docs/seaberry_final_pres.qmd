@@ -1,0 +1,322 @@
+---
+title: "Re-surveilling surveillance"
+author: Camille Seaberry
+institute: UMBC data science MPS capstone, Fall 2023
+format: 
+  revealjs: 
+    theme: dark
+bibliography: references.bib
+execute: 
+  echo: false
+scrollable: true
+nocite: |
+  @T.C.L+2021a
+
+---
+
+
+## Background
+
+* Police surveillance cameras in Baltimore form one of many layers of state surveillance imposed upon residents.
+* Little documentation, control, or oversight of surveillance landscape
+* What role do tech vendors play in surveillance? How can open source tech be used for accountability?
+
+---
+
+### Tasks
+
+* Identify cameras in images (object detection)
+* Categorize camera types once detected (classification)
+
+### Goals
+
+- Improve upon / expand on models I built before---**DONE!**
+- Map locations of cameras for spatial analysis---**NOT DONE**
+
+## About the data {.smaller}
+
+|                         | Google Street View         | Objects365         | Mapillary Vistas  |
+| ----------------------- | -------------------------- | ------------------ | ----------------- |
+| Size (train, val, test) | 473 / 119 / 79             | 393 / 107 / 54     | 3,202 / 929 / 484 |
+| Setting                 | Street                     | Outdoors & indoors | Street            |
+| Used for                | Detection & classification | Detection          | Detection         |
+| Release                 | Maybe a TOS violation?     | Released for research | Released for research |
+| Source                  | @S.Y.G2021           | @S.L.Z+2019    | @N.O.R+2017     |
+
+
+## Tools
+
+|                    |                                                                 |
+| ------------------ | --------------------------------------------------------------- |
+| Ultralytics YOLOv8 | Models with built-in modules for training, tuning, & validation |
+| Pytorch            | Underlies Ultralytics models                                    |
+| Roboflow           | Dataset creation & management                                   |
+| Weights & Biases   | Experiment tracking                                             |
+| Paperspace         | Virtual machine (8 CPUs, 16GB GPU)                               |
+
+
+
+## Models {.smaller}
+
+| YOLO                                         | RT-DETR                                    |
+| -------------------------------------------- | ------------------------------------------ |
+| Latest generation YOLO model                 | Transformer-based model from Baidu         |
+| Detection & classification (& others)        | Detection only                             |
+| Smaller architecture (medium has 26M params) | Larger architecture (large has 33M params) |
+| Trains very quickly & can train small models on laptop | Trains slowly & needs more GPU RAM |
+| Doesn't perform as well                           | Performs better                            |
+| Well-documented & integrated                 | New, not fully integrated to ecosystem (e.g. no `tune` method)     |
+
+
+## YOLO family
+
+::::{.columns}
+
+:::{.column width="40%"}
+
+* Ultralytics released YOLOv8 this year
+* Avoids anchor box calculations and comparisons of other detection models
+
+:::
+
+:::{.column width="60%"}
+
+![YOLOv1 diagram. @R.D.G+2016](./imgs/yolo_diagram.gif)
+
+:::{.content-visible unless-format="revealjs"}
+YOLOv1 diagram. @R.D.G+2016
+:::
+
+:::
+
+::::
+
+
+## Model variations
+
+### Detection
+
+* Freezing all but last few layers---increased speed, maybe increased accuracy
+* Tiling images---better detection of small objects
+
+### Classification
+
+* No RT-DETR classifier, so just trying different sizes of YOLO
+
+
+## Model variations
+
+::::{.columns}
+
+:::{.column}
+
+After lots of trial & error, best bets for detection:
+
+* YOLO trained on full-sized images
+* YOLO trained on tiled images
+* RT-DETR trained on full-sized images with freezing
+
+:::
+
+:::{.column}
+
+![Example tiled image](./imgs/tile_ex.jpg)
+
+:::{.content-visible unless-format="revealjs"}
+Example tiled image
+:::
+
+:::
+
+::::
+
+## Results
+
+### Training & first round of validation
+
+YOLO works well on tiled images, but it will need to transfer to full-sized images to be useful
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false 
+#| fig-width: 10
+#| fig-height: 3
+library(dplyr)
+library(purrr)
+library(ggplot2)
+lbl_path <- function(x) {
+  x <- basename(x)
+  x <- stringr::str_remove(x, "_results.csv")
+  x
+}
+read_results <- function(type) {
+  patt <- stringr::str_glue("_{type}_results.csv")
+  files <- list.files(here::here("best_wts"), patt, full.names = TRUE)
+  files <- rlang::set_names(files, lbl_path)
+  files <- purrr::map_dfr(files, readr::read_csv, .id = "model")
+  files <- janitor::clean_names(files)
+  files
+}
+```
+
+
+```{r}
+res_dfs <- list(train = "train", tune = "tune") |>
+  map(read_results) |>
+  map(dplyr::select, model, epoch, 
+          precision = metrics_precision_b, 
+          recall = metrics_recall_b, 
+          map50 = metrics_m_ap50_b, 
+          map50_95 = metrics_m_ap50_95_b,
+          box_loss = train_box_loss) |>
+  map(tidyr::pivot_longer, -model:-epoch, names_to = "measure", names_ptypes = list(measure = factor())) |>
+  map(mutate, measure = forcats::fct_relabel(measure, stringr::str_to_sentence) |>
+                      forcats::fct_relabel(snakecase::to_sentence_case) |>
+                      forcats::fct_recode("mAP 50" = "Map 50", "mAP 50-95" = "Map 50 95")) |>
+  map(mutate, model = forcats::fct_relabel(model, snakecase::to_sentence_case) |>
+                      forcats::fct_relabel(stringr::str_remove_all, " (train|tune)") |>
+                      forcats::fct_relabel(\(x) gsub("^([A-Z][a-z]+)", "\\U\\1", x, perl = TRUE)) |>
+                      forcats::fct_relabel(stringr::str_replace, "notransfer", "no transfer"))
+
+pal <- rcartocolor::carto_pal(name = "Vivid")[c(1, 2, 5, 10, 7)] |>
+  setNames(c("DETR full frz", "YOLO full", "YOLO tile", "YOLO tile transfer", "YOLO tile no transfer"))
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 4 
+#| fig-cap: "Training results - YOLO & DETR models" 
+res_dfs[["train"]] |>
+  filter(measure != "Box loss") |>
+  ggplot(aes(x = epoch, y = value, color = model)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(vars(measure), nrow = 1, scales = "free_y") +
+  scale_x_continuous(breaks = seq(0, 15, by = 5)) +
+  scale_color_manual(values = pal) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.spacing = unit(0.4, "in")) +
+  labs(x = "Epoch", y = "Value", color = "Model")
+```
+
+## Results
+
+### Validation examples, DETR model
+
+:::{.content-visible unless-format="revealjs"}
+Validation labels; validation predictions
+:::
+
+::: {layout-ncol=2}
+
+![Validation labels](./imgs/val_batch0_labels_detr.jpg)
+
+![Validation predictions](./imgs/val_batch0_pred_detr.jpg)
+
+:::
+
+## Results
+
+### Tuning
+
+```{r}
+#| fig-width: 10
+#| fig-height: 3 
+#| fig-cap: "Tuning results - YOLO variations only" 
+res_dfs[["tune"]] |>
+  filter(measure != "Box loss", value > 0) |>
+  ggplot(aes(x = model, y = value, color = model)) +
+  geom_boxplot(width = 0.5) +
+  facet_wrap(vars(measure), nrow = 1, scales = "free_y") +
+  scale_x_discrete(labels = NULL) +
+  scale_color_manual(values = pal) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.spacing = unit(0.4, "in")) +
+  labs(x = NULL, y = "Value", color = "Model")
+```
+
+## Results
+
+### Tuning---what went wrong?
+
+* Clearly needs more tuning---these metrics are _worse_ than untuned models!
+* Pick a model & tune extensively & methodically---probably YOLO tiled
+  * However, that model runs the risk of not transferring well
+
+## Results
+
+### Classification
+
+::::{.columns}
+
+:::{.column width=40%}
+* Works very well
+* However, this was only a very small dataset
+:::
+
+:::{.column width=60%}
+:::{.content-visible unless-format="revealjs"}
+Confusion matrix, YOLO medium
+:::
+![Confusion matrix, YOLO medium](./imgs/yolo_m_matrix.png)
+:::
+
+::::
+
+
+## Results
+
+### Inference
+
+:::{.content-visible unless-format="revealjs"}
+Screenshot of an earlier demo
+:::
+![Screenshot of an earlier demo](./imgs/demo_loch_raven.png)
+
+## Demo
+
+<iframe
+	src="https://camilleseab-surveillance.hf.space"
+	frameborder="0"
+	width="850"
+	height="450"
+></iframe>
+
+Working interactive demo: [https://camilleseab-surveillance.hf.space](https://camilleseab-surveillance.hf.space)
+
+## Challenges
+
+* Many moving parts to work together
+* Some components are very new & incomplete
+* Hard to find lots of high-quality data
+* Google Street View images aren't permanent
+* Formatting images & annotations to be compatible
+* Reliable, sustained compute power
+* A lot to learn!
+
+
+## Potential improvements 
+
+* Need a better tuning methodology---switch to W&B
+* Longer training---common benchmarks use 300 epochs
+* Add slicing to inference step (SAHI, @A.O.T2022)
+* Label more images for a larger dataset
+  * Can use AI labelling assistants
+
+## Next steps?
+
+* Use the classification model to add classes back to detection images
+* Infer on Mapillary images with location data for spatial analysis
+  * Mapillary already has so many objects annotated, might only need to do this to fill in gaps
+
+
+## Conclusions & implications
+
+* This is a potentially useful start but needs more work still
+* Surveillance studies, movements for police accountability seem to be tech-averse (with good reason), but there is a role for the technologies deployed against communities to be used by them as well
+* Inherently reactionary to be chasing surveillance state after its infrastructure is built
+
+
+## References {.smaller}
