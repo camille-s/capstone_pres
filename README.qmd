@@ -2,12 +2,11 @@
 title: "Re-surveilling surveillance"
 author: Camille Seaberry
 institute: UMBC data science MPS capstone, Fall 2023
-format: 
-  revealjs: 
-    theme: dark
-bibliography: references.bib
+format: gfm
+bibliography: docs/references.bib
 execute: 
   echo: false
+  message: false
 scrollable: true
 nocite: |
   @T.C.L+2021a
@@ -21,7 +20,6 @@ nocite: |
 * Little documentation, control, or oversight of surveillance landscape
 * What role do tech vendors play in surveillance? How can open source tech be used for accountability?
 
----
 
 ### Tasks
 
@@ -81,7 +79,7 @@ nocite: |
 
 :::{.column width="60%"}
 
-![YOLOv1 diagram. @R.D.G+2016](./imgs/yolo_diagram.gif)
+![YOLOv1 diagram. @R.D.G+2016](./docs/imgs/yolo_diagram.gif)
 
 :::{.content-visible unless-format="revealjs"}
 YOLOv1 diagram. @R.D.G+2016
@@ -120,7 +118,7 @@ After lots of trial & error, best bets for detection:
 
 :::{.column}
 
-![Example tiled image](./imgs/tile_ex.jpg)
+![Example tiled image](./docs/imgs/tile_ex.jpg)
 
 :::{.content-visible unless-format="revealjs"}
 Example tiled image
@@ -158,10 +156,7 @@ read_results <- function(type) {
   files <- janitor::clean_names(files)
   files
 }
-```
 
-
-```{r}
 res_dfs <- list(train = "train", tune = "tune") |>
   map(read_results) |>
   map(dplyr::select, model, epoch, 
@@ -210,9 +205,9 @@ Validation labels; validation predictions
 
 ::: {layout-ncol=2}
 
-![Validation labels](./imgs/val_batch0_labels_detr.jpg)
+![Validation labels](./docs/imgs/val_batch0_labels_detr.jpg)
 
-![Validation predictions](./imgs/val_batch0_pred_detr.jpg)
+![Validation predictions](./docs/imgs/val_batch0_pred_detr.jpg)
 
 :::
 
@@ -260,7 +255,7 @@ res_dfs[["tune"]] |>
 :::{.content-visible unless-format="revealjs"}
 Confusion matrix, YOLO medium
 :::
-![Confusion matrix, YOLO medium](./imgs/yolo_m_matrix.png)
+![Confusion matrix, YOLO medium](./docs/imgs/yolo_m_matrix.png)
 :::
 
 ::::
@@ -273,16 +268,9 @@ Confusion matrix, YOLO medium
 :::{.content-visible unless-format="revealjs"}
 Screenshot of an earlier demo
 :::
-![Screenshot of an earlier demo](./imgs/demo_loch_raven.png)
+![Screenshot of an earlier demo](./docs/imgs/demo_loch_raven.png)
 
 ## Demo
-
-<iframe
-	src="https://camilleseab-surveillance.hf.space"
-	frameborder="0"
-	width="850"
-	height="450"
-></iframe>
 
 Working interactive demo: [https://camilleseab-surveillance.hf.space](https://camilleseab-surveillance.hf.space)
 
