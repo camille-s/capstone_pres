@@ -246,6 +246,7 @@ res_dfs[["tune"]] |>
 
 ### Classification
 
+
 ::::{.columns}
 
 :::{.column width=40%}
@@ -255,12 +256,42 @@ res_dfs[["tune"]] |>
 
 :::{.column width=60%}
 :::{.content-visible unless-format="revealjs"}
-Confusion matrix, YOLO medium
+Confusion matrix, YOLO medium, validation set
 :::
-![Confusion matrix, YOLO medium](./imgs/yolo_m_matrix.png)
+
+```{r}
+#| warning: false
+#| fig-width: 6
+#| fig-height: 4
+#| fig-cap: Confusion matrix, YOLO medium, validation set 
+conf <- readLines(here::here("best_wts/yolo_m_confusion.txt")) |>
+  strsplit(",") |>
+  unlist() |>
+  readr::parse_number() |>
+  setNames(c("directed_directed", "directed_globe", "globe_directed", "globe_globe")) |>
+  tibble::enframe() |>
+  tidyr::separate_wider_delim(name, delim = "_", names = c("predicted", "observed")) |>
+  mutate(across(predicted:observed, \(x) forcats::as_factor(x)))
+
+conf_mtx <- ggplot(conf, aes(x = observed, y = forcats::fct_rev(predicted), fill = value)) +
+  geom_tile() +
+  geom_label(aes(label = value), fill = "white") +
+  scale_x_discrete(expand = expansion()) +
+  scale_y_discrete(expand = expansion()) +
+  scale_fill_distiller(palette = "Blues", direction = 1) +
+  theme_minimal() +
+  coord_equal() +
+  labs(x = "Observed class", y = "Predicted class", fill = "Count")
+
+conf_mtx
+
+ggsave(here::here("docs/imgs/confusion_matrix.png"), conf_mtx, width = 6, height = 4, dpi = 150, bg = "white")
+```
+
 :::
 
 ::::
+
 
 
 ## Results
