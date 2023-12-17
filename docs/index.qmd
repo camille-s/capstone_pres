@@ -74,7 +74,7 @@ nocite: |
 
 :::{.column width="40%"}
 
-* Ultralytics released YOLOv8 this year
+* Ultralytics released YOLOv8 this year (@J.C.Q2023)
 * Avoids anchor box calculations and comparisons of other detection models
 
 :::

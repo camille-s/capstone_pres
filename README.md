@@ -56,7 +56,8 @@ Camille Seaberry
 
 <div class="column" width="40%">
 
-- Ultralytics released YOLOv8 this year
+- Ultralytics released YOLOv8 this year (Jocher, Chaurasia, and Qiu
+  (2023))
 - Avoids anchor box calculations and comparisons of other detection
   models
 
@@ -252,6 +253,13 @@ Detection.” In *2022 IEEE International Conference on Image Processing
 
 Browne, Simone. 2015. *Dark Matters: On the Surveillance of Blackness*.
 Durham, NC: Duke University Press.
+
+</div>
+
+<div id="ref-J.C.Q2023" class="csl-entry">
+
+Jocher, Glenn, Ayush Chaurasia, and Jing Qiu. 2023. “YOLO by
+Ultralytics.” <https://github.com/ultralytics/ultralytics>.
 
 </div>
 
