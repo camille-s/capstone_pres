@@ -347,4 +347,4 @@ Working interactive demo: [https://camilleseab-surveillance.hf.space](https://ca
 * Inherently reactionary to be chasing surveillance state after its infrastructure is built
 
 
-## References {.smaller}
+## References {style="font-size: 20px;"}
