@@ -1,5 +1,8 @@
 # Re-surveilling surveillance
-Camille Seaberry
+
+Camille Seaberry, capstone for MPS in Data Science, UMBC Fall 2023
+
+Project code: https://github.com/DATA-606-2023-FALL-MONDAY/seaberry_camille
 
 ## Background
 
